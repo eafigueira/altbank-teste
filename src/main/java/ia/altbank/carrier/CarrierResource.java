@@ -16,8 +16,9 @@ public class CarrierResource {
     private final CarrierService carrierService;
 
     @GET
-    public List<CarrierResponse> listAll() {
-        return carrierService.findAll();
+    public List<CarrierResponse> listAll(@QueryParam("page") @DefaultValue("0") int page,
+                                         @QueryParam("size") @DefaultValue("20") int size) {
+        return carrierService.findAll(page, size);
     }
 
     @GET

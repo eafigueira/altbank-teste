@@ -1,6 +1,8 @@
 package ia.altbank.carrier;
 
+import ia.altbank.customer.CustomerDTO;
 import ia.altbank.exception.NotFoundException;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +24,11 @@ public class CarrierService {
         return carrier;
     }
 
-    public List<CarrierResponse> findAll() {
-        return carrierRepository.listAll().stream()
+    public List<CarrierResponse> findAll(int page, int size) {
+        return carrierRepository.findAll()
+                .page(Page.of(page, size))
+                .list()
+                .stream()
                 .map(this::toResponse)
                 .peek(CarrierResponse::hideAuthInfo)
                 .collect(Collectors.toList());
