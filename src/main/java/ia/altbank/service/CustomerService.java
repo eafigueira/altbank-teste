@@ -59,13 +59,13 @@ public class CustomerService {
         customer.setEmail(request.getEmail());
 
         Address address = new Address();
-        address.setCity(request.getAddress().city());
-        address.setComplement(request.getAddress().complement());
-        address.setNeighborhood(request.getAddress().neighborhood());
-        address.setNumber(request.getAddress().number());
-        address.setState(request.getAddress().state());
-        address.setStreet(request.getAddress().street());
-        address.setZipCode(request.getAddress().zipCode());
+        address.setCity(request.getAddress().getCity());
+        address.setComplement(request.getAddress().getComplement());
+        address.setNeighborhood(request.getAddress().getNeighborhood());
+        address.setNumber(request.getAddress().getNumber());
+        address.setState(request.getAddress().getState());
+        address.setStreet(request.getAddress().getStreet());
+        address.setZipCode(request.getAddress().getZipCode());
         customer.setAddress(address);
         return customer;
     }

@@ -21,7 +21,7 @@ public class CustomerResource {
     private final CustomerService service;
 
     @POST
-    public Response createCustomer(CreateCustomerRequest request) {
+    public Response createCustomer(@Valid CreateCustomerRequest request) {
         CreateCustomerResponse response = service.create(request);
         return Response.status(Response.Status.CREATED).entity(response).build();
     }
@@ -34,7 +34,8 @@ public class CustomerResource {
 
     @DELETE
     @Path("/{id}")
-    public void delete(@PathParam("id") UUID id) {
+    public Response delete(@PathParam("id") UUID id) {
         service.delete(id);
+        return Response.noContent().build();
     }
 }

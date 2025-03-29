@@ -1,23 +1,28 @@
 package ia.altbank.dto;
 
-import ia.altbank.model.Address;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
-/**
- * DTO for {@link Address}
- */
-public record CreateAddressRequest(
+@Getter
+@Setter
+@Builder
+public class CreateAddressRequest {
         @NotBlank(message = "Street is required")
-        String street,
-        String number,
-        String complement,
+        private String street;
+        private String number;
+        private String complement;
+
         @NotBlank(message = "Neighborhood is required")
-        String neighborhood,
+        private String neighborhood;
+
         @NotBlank(message = "City is required")
-        String city,
+        private String city;
+
         @NotBlank(message = "State is required")
-        String state,
+        private String state;
+
         @NotBlank(message = "Zip Code is required")
-        String zipCode
-) {
+        private String zipCode;
 }

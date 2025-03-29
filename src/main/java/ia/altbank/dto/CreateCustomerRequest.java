@@ -1,7 +1,11 @@
 package ia.altbank.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -13,5 +17,7 @@ public class CreateCustomerRequest {
     private String documentNumber;
     @NotBlank(message = "Email is required")
     private String email;
+    @Valid
+    @NotNull
     private CreateAddressRequest address;
 }
