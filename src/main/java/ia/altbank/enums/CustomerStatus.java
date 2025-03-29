@@ -1,5 +1,5 @@
 package ia.altbank.enums;
 
-public enum AccountStatus {
+public enum CustomerStatus {
     ACTIVE, INACTIVE, DELETED
 }

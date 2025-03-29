@@ -1,13 +1,11 @@
 package ia.altbank.model;
 
+import ia.altbank.enums.CustomerStatus;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Setter
 @Getter
@@ -20,4 +18,9 @@ public class Customer extends BaseEntity {
     @Column(nullable = false, name = "document_number")
     private String documentNumber;
     private String email;
+    @Embedded
+    private Address address;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CustomerStatus status;
 }

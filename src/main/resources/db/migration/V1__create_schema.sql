@@ -5,7 +5,16 @@ CREATE TABLE customers
     document_number VARCHAR(20)  NOT NULL,
     email           VARCHAR(100),
     created_at      TIMESTAMP    NULL,
-    updated_at      TIMESTAMP    NULL
+    updated_at      TIMESTAMP    NULL,
+
+    street          VARCHAR(150) NOT NULL,
+    number          VARCHAR(50)  NULL,
+    complement      VARCHAR(50)  NULL,
+    neighborhood    VARCHAR(50)  NOT NULL,
+    city            VARCHAR(50)  NOT NULL,
+    state           VARCHAR(30)  NOT NULL,
+    zipCode         VARCHAR(10)  NOT NULL,
+    status          VARCHAR(20)  NOT NULL
 );
 
 CREATE TABLE accounts
@@ -44,5 +53,6 @@ CREATE TABLE carriers
     client_secret   VARCHAR(255) NOT NULL,
     default_carrier BOOLEAN      NOT NULL,
     created_at      TIMESTAMP    NULL,
-    updated_at      TIMESTAMP    NULL
+    updated_at      TIMESTAMP    NULL,
+    status          VARCHAR(20)  NOT NULL
 );

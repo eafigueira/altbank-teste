@@ -1,13 +1,11 @@
 package ia.altbank.model;
 
+import ia.altbank.enums.CarrierStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.UuidGenerator;
-
-import java.util.UUID;
 
 @Setter
 @Getter
@@ -27,4 +25,13 @@ public class Carrier extends BaseEntity {
 
     @Column(name = "default_carrier", nullable = false)
     private boolean defaultCarrier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private CarrierStatus status;
+
+    @PrePersist
+    public void prePersist() {
+        this.status = CarrierStatus.ACTIVE;
+    }
 }
