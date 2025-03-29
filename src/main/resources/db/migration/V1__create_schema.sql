@@ -2,7 +2,7 @@ CREATE TABLE customers
 (
     id BINARY (16) PRIMARY KEY NOT NULL,
     name            VARCHAR(100) NOT NULL,
-    document_number VARCHAR(20)  NOT NULL,
+    document_number VARCHAR(20)  NOT NULL UNIQUE,
     email           VARCHAR(100),
     created_at      TIMESTAMP    NULL,
     updated_at      TIMESTAMP    NULL,
@@ -13,15 +13,13 @@ CREATE TABLE customers
     neighborhood    VARCHAR(50)  NOT NULL,
     city            VARCHAR(50)  NOT NULL,
     state           VARCHAR(30)  NOT NULL,
-    zipCode         VARCHAR(10)  NOT NULL,
-    status          VARCHAR(20)  NOT NULL
+    zipCode         VARCHAR(10)  NOT NULL
 );
 
 CREATE TABLE accounts
 (
     id BINARY (16) PRIMARY KEY NOT NULL,
     customer_id BINARY (16) NOT NULL,
-    status     VARCHAR(20) NOT NULL,
     created_at TIMESTAMP   NULL,
     updated_at TIMESTAMP   NULL,
     FOREIGN KEY (customer_id) REFERENCES customers (id)
@@ -49,10 +47,10 @@ CREATE TABLE carriers
 (
     id BINARY (16) PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,
+    document_number VARCHAR(14)  NOT NULL UNIQUE,
     client_id       VARCHAR(255) NOT NULL UNIQUE,
     client_secret   VARCHAR(255) NOT NULL,
     default_carrier BOOLEAN      NOT NULL,
     created_at      TIMESTAMP    NULL,
-    updated_at      TIMESTAMP    NULL,
-    status          VARCHAR(20)  NOT NULL
+    updated_at      TIMESTAMP    NULL
 );

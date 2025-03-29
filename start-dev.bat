@@ -8,4 +8,4 @@ if %errorlevel% neq 0 (
 )
 
 echo Iniciando Quarkus em modo dev...
-call mvnw quarkus:dev
+call mvnw quarkus:dev -Ddebug
