@@ -4,6 +4,7 @@ import ia.altbank.dto.CardDeliveryWebhookRequest;
 import ia.altbank.model.Carrier;
 import ia.altbank.service.CarrierService;
 import ia.altbank.service.WebhookService;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
@@ -22,7 +23,7 @@ public class CarrierWebhookResource {
 
     public Response receiveDeliveryUpdate(@HeaderParam("X-Client-Id") String clientId,
                                           @HeaderParam("X-Client-Secret") String clientSecret,
-                                          CardDeliveryWebhookRequest payload) {
+                                          @Valid CardDeliveryWebhookRequest payload) {
 
         Carrier carrier = carrierService.validateCarrier(clientId, clientSecret);
 

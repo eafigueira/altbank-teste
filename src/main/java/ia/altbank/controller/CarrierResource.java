@@ -3,6 +3,7 @@ package ia.altbank.controller;
 import ia.altbank.dto.CarrierRequest;
 import ia.altbank.dto.CarrierResponse;
 import ia.altbank.service.CarrierService;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class CarrierResource {
     }
 
     @POST
-    public CarrierResponse create(CarrierRequest request) {
+    public CarrierResponse create(@Valid CarrierRequest request) {
         return carrierService.create(request);
     }
 
