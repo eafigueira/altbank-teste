@@ -77,11 +77,12 @@ public class CustomerService {
         customerRepository.persist(customer);
     }
 
+    @Transactional
     public void delete(UUID id) {
         Customer customer = findById(id);
         customer.setStatus(CustomerStatus.DELETED);
-        accountService.deleteByCustomerId(id);
-        customerRepository.delete(customer);
+        customerRepository.persist(customer);
+        accountService.cancelByCustomerId(id);
     }
 
     private Customer findById(UUID id) {

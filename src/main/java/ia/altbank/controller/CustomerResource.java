@@ -31,4 +31,10 @@ public class CustomerResource {
     public void update(@PathParam("id") UUID id, @Valid UpdateCustomerRequest request) {
         service.update(id, request);
     }
+
+    @DELETE
+    @Path("/{id}")
+    public void delete(@PathParam("id") UUID id) {
+        service.delete(id);
+    }
 }
