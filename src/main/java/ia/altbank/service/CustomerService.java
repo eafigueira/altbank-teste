@@ -52,7 +52,7 @@ public class CustomerService {
                 .build();
     }
 
-    private Customer createCustomer(CreateCustomerRequest request) {
+    public Customer createCustomer(CreateCustomerRequest request) {
         Customer customer = new Customer();
         customer.setName(request.getName());
         customer.setDocumentNumber(request.getDocumentNumber());
