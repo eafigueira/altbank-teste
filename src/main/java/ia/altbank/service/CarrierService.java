@@ -50,6 +50,10 @@ public class CarrierService {
         carrier.setDefaultCarrier(request.isDefaultCarrier());
         carrier.setClientId(UUID.randomUUID().toString());
         carrier.setClientSecret(UUID.randomUUID().toString());
+
+        if (request.isDefaultCarrier()) {
+            carrierRepository.update("defaultCarrier = false");
+        }
         carrierRepository.persist(carrier);
         return toResponse(carrier);
     }
@@ -59,6 +63,9 @@ public class CarrierService {
         Carrier carrier = carrierRepository.findById(id);
         if (carrier != null) {
             carrier.setName(request.getName());
+            if (request.isDefaultCarrier()) {
+                carrierRepository.update("defaultCarrier = false");
+            }
             carrier.setDefaultCarrier(request.isDefaultCarrier());
         }
         return toResponse(carrier);
@@ -76,6 +83,10 @@ public class CarrierService {
 
     @Transactional
     public void delete(UUID id) {
+        Carrier carrier = carrierRepository.findById(id);
+        if (carrier != null && carrier.isDefaultCarrier()) {
+            throw new IllegalStateException("Cannot delete the default carrier");
+        }
         carrierRepository.deleteById(id);
     }
 

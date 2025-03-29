@@ -2,15 +2,14 @@ package ia.altbank.controller;
 
 import ia.altbank.dto.CreateCustomerRequest;
 import ia.altbank.dto.CreateCustomerResponse;
-import ia.altbank.dto.UpdateCustomerRequest;
 import ia.altbank.service.CustomerService;
-import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
-
-import java.util.UUID;
 
 @Path("/customers")
 @Produces(MediaType.APPLICATION_JSON)
@@ -18,17 +17,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CustomerResource {
 
-    private final CustomerService service;
+    private final CustomerService customerService;
 
     @POST
-    public Response createCustomer(CreateCustomerRequest request) {
-        CreateCustomerResponse response = service.create(request);
-        return Response.status(Response.Status.CREATED).entity(response).build();
-    }
 
-    @PUT
-    @Path("/{id}")
-    public void update(@PathParam("id") UUID id, @Valid UpdateCustomerRequest request) {
-        service.update(id, request);
+    public Response createCustomer(CreateCustomerRequest request) {
+        CreateCustomerResponse response = customerService.createCustomer(request);
+        return Response.status(Response.Status.CREATED).entity(response).build();
     }
 }
