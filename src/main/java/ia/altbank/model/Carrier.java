@@ -1,13 +1,11 @@
 package ia.altbank.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.util.UUID;
 
@@ -16,21 +14,17 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class Carrier {
-    @Id
-    private UUID id;
+@Table(name = "carriers")
+public class Carrier extends BaseEntity {
 
     private String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, name = "client_id")
     private String clientId;
 
+    @Column(name = "client_secret", nullable = false)
     private String clientSecret;
 
+    @Column(name = "default_carrier", nullable = false)
     private boolean defaultCarrier;
-
-    @PrePersist
-    public void prePersist() {
-        this.id = UUID.randomUUID();
-    }
 }

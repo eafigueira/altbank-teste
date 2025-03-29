@@ -1,9 +1,10 @@
 package ia.altbank.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -13,17 +14,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class Customer {
-    @Id
-    private UUID id;
+@Table(name = "customers")
+public class Customer extends BaseEntity {
     private String name;
+    @Column(nullable = false, name = "document_number")
     private String documentNumber;
     private String email;
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    public void prePersist() {
-        this.id = UUID.randomUUID();
-        this.createdAt = LocalDateTime.now();
-    }
 }

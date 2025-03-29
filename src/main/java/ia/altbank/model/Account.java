@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -15,22 +16,16 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class Account {
-    @Id
-    private UUID id;
-
+@Table(name = "accounts")
+public class Account extends BaseEntity {
     @ManyToOne(optional = false)
     private Customer customer;
 
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
 
-    private LocalDateTime createdAt;
-
     @PrePersist
     public void prePersist() {
-        this.id = UUID.randomUUID();
-        this.createdAt = LocalDateTime.now();
         this.status = AccountStatus.ACTIVE;
     }
 }
