@@ -10,6 +10,6 @@ import java.util.UUID;
 @ApplicationScoped
 public class AccountRepository implements PanacheRepositoryBase<Account, UUID> {
     public Optional<Account> findByCustomerId(UUID id) {
-        return find("customer.id = :id", "id", id).firstResultOptional();
+        return find("customer.id = ?1", id).firstResultOptional();
     }
 }

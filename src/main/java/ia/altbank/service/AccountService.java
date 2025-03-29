@@ -1,6 +1,7 @@
 package ia.altbank.service;
 
 import ia.altbank.enums.AccountStatus;
+import ia.altbank.exception.NotFoundException;
 import ia.altbank.model.Account;
 import ia.altbank.repository.AccountRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,10 +36,14 @@ public class AccountService {
     }
 
     private Account findByCustomerId(UUID id) {
-        return repository.findByCustomerId(id).orElseThrow(() -> new RuntimeException("Account not found"));
+        return repository.findByCustomerId(id)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
+                .orElseThrow(() -> new NotFoundException("Account not found"));
     }
 
     private Account findById(UUID id) {
-        return repository.findByIdOptional(id).orElseThrow(() -> new RuntimeException("Account not found"));
+        return repository.findByIdOptional(id)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
+                .orElseThrow(() -> new NotFoundException("Account not found"));
     }
 }

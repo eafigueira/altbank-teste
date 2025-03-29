@@ -9,20 +9,20 @@ import lombok.Setter;
 @Setter
 @Builder
 public class CreateAddressRequest {
-        @NotBlank(message = "Street is required")
-        private String street;
-        private String number;
-        private String complement;
+    @NotBlank(message = "Street is required")
+    private String street;
+    private String number;
+    private String complement;
 
-        @NotBlank(message = "Neighborhood is required")
-        private String neighborhood;
+    @NotBlank(message = "Neighborhood is required")
+    private String neighborhood;
 
-        @NotBlank(message = "City is required")
-        private String city;
+    @NotBlank(message = "City is required")
+    private String city;
 
-        @NotBlank(message = "State is required")
-        private String state;
+    @NotBlank(message = "State is required")
+    private String state;
 
-        @NotBlank(message = "Zip Code is required")
-        private String zipCode;
+    @NotBlank(message = "Zip Code is required")
+    private String zipCode;
 }

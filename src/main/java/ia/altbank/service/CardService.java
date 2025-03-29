@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @RequiredArgsConstructor
@@ -19,11 +20,13 @@ public class CardService {
     @Transactional
     public void deleteByAccountId(UUID accountId) {
         List<Card> cards = findAllByAccountId(accountId);
-        cards.forEach(Card -> Card.setStatus(CardStatus.DELETED));
+        cards.forEach(card -> card.setStatus(CardStatus.DELETED));
         repository.persist(cards);
     }
 
     private List<Card> findAllByAccountId(UUID accountId) {
-        return repository.findAllByAccountId(accountId);
+        return repository.findAllByAccountId(accountId)
+                .stream().filter(card -> card.getStatus() != CardStatus.DELETED)
+                .collect(Collectors.toList());
     }
 }

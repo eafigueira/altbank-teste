@@ -2,10 +2,12 @@ package ia.altbank.service;
 
 import ia.altbank.dto.CreateCustomerRequest;
 import ia.altbank.dto.CreateCustomerResponse;
+import ia.altbank.dto.CustomerDTO;
 import ia.altbank.dto.UpdateCustomerRequest;
 import ia.altbank.enums.CardStatus;
 import ia.altbank.enums.CardType;
 import ia.altbank.enums.CustomerStatus;
+import ia.altbank.exception.NotFoundException;
 import ia.altbank.model.Account;
 import ia.altbank.model.Address;
 import ia.altbank.model.Card;
@@ -52,8 +54,9 @@ public class CustomerService {
                 .build();
     }
 
-    public Customer createCustomer(CreateCustomerRequest request) {
+    private Customer createCustomer(CreateCustomerRequest request) {
         Customer customer = new Customer();
+        customer.setStatus(CustomerStatus.ACTIVE);
         customer.setName(request.getName());
         customer.setDocumentNumber(request.getDocumentNumber());
         customer.setEmail(request.getEmail());
@@ -85,8 +88,14 @@ public class CustomerService {
         accountService.cancelByCustomerId(id);
     }
 
+    public CustomerDTO findOne(UUID id) {
+        Customer customer = findById(id);
+        return new CustomerDTO(customer);
+    }
+
     private Customer findById(UUID id) {
         return customerRepository.findByIdOptional(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .filter(customer -> customer.getStatus() != CustomerStatus.DELETED)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
     }
 }

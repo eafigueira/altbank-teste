@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,13 @@ public class ValidationExceptionMapper implements ExceptionMapper<ConstraintViol
 
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(errors)
+                .build();
+    }
+
+    @ServerExceptionMapper
+    public Response toResponse(NotFoundException exception) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity(Map.of("message", exception.getMessage()))
                 .build();
     }
 }

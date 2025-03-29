@@ -2,6 +2,7 @@ package ia.altbank.controller;
 
 import ia.altbank.dto.CreateCustomerRequest;
 import ia.altbank.dto.CreateCustomerResponse;
+import ia.altbank.dto.CustomerDTO;
 import ia.altbank.dto.UpdateCustomerRequest;
 import ia.altbank.service.CustomerService;
 import jakarta.validation.Valid;
@@ -37,5 +38,11 @@ public class CustomerResource {
     public Response delete(@PathParam("id") UUID id) {
         service.delete(id);
         return Response.noContent().build();
+    }
+
+    @GET
+    @Path("/{id}")
+    public CustomerDTO findById(@PathParam("id") UUID id) {
+        return service.findOne(id);
     }
 }
