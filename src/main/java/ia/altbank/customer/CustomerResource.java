@@ -46,4 +46,24 @@ public class CustomerResource {
                                      @QueryParam("size") @DefaultValue("20") int size) {
         return service.listAll(page, size);
     }
+
+    @POST
+    @Path("/{customerId}/accounts")
+    public Response addAccount(@PathParam("customerId") UUID customerId) {
+        CustomerAccountResponse response = service.createAccount(customerId);
+        return Response.status(Response.Status.CREATED).entity(response).build();
+    }
+    @GET
+    @Path("/{customerId}/accounts")
+    public List<CustomerAccountResponse> listAccounts(@PathParam("customerId") UUID customerId) {
+        return service.listAccounts(customerId);
+    }
+
+    @DELETE
+    @Path("/{customerId}/accounts/{accountId}")
+    public void listAccounts(@PathParam("customerId") UUID customerId,
+                             @PathParam("accountId") UUID accountId) {
+        service.deleteAccount(customerId, accountId);
+    }
+
 }

@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 @Table(name = "cards")
 public class Card extends BaseEntity {
 
-    @ManyToOne(optional = false)
+    @ManyToOne
+    @JoinColumn(name = "account_id")
     private Account account;
     @Enumerated(EnumType.STRING)
     private CardType type;

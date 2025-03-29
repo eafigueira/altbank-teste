@@ -3,11 +3,7 @@ package ia.altbank.customer;
 import ia.altbank.account.Account;
 import ia.altbank.account.AccountRepository;
 import ia.altbank.account.AccountService;
-import ia.altbank.card.Card;
-import ia.altbank.card.CardRepository;
-import ia.altbank.card.CardStatus;
-import ia.altbank.card.CardType;
-import ia.altbank.carrier.Carrier;
+import ia.altbank.card.*;
 import ia.altbank.exception.NotFoundException;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,9 +20,8 @@ import java.util.stream.Collectors;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final AccountRepository accountRepository;
-    private final CardRepository cardRepository;
     private final AccountService accountService;
+    private final CardService cardService;
 
     @Transactional
     public CreateCustomerResponse create(CreateCustomerRequest request) {
@@ -37,22 +32,14 @@ public class CustomerService {
 
         Customer customer = createCustomer(request);
         customerRepository.persist(customer);
+        Account account = accountService.createAccount(customer);
 
-        Account account = new Account();
-        account.setCustomer(customer);
-        accountRepository.persist(account);
-
-        Card card = new Card();
-        card.setAccount(account);
-        card.setType(CardType.PHYSICAL);
-        card.setNumber(UUID.randomUUID().toString().replace("-", "").substring(0, 16));
-        card.setStatus(CardStatus.CREATED);
-        cardRepository.persist(card);
+        Card newCard = cardService.createCard(account, CardType.PHYSICAL);
 
         return CreateCustomerResponse.builder()
                 .customerId(customer.getId())
                 .accountId(account.getId())
-                .cardId(card.getId())
+                .cardId(newCard.getId())
                 .address(new AddressDTO(customer.getAddress()))
                 .build();
     }
@@ -71,9 +58,6 @@ public class CustomerService {
     @Transactional
     public void update(UUID id, @Valid UpdateCustomerRequest request) {
         Customer customer = findById(id);
-        if (customer == null) {
-            throw new NotFoundException("Customer not found");
-        }
         if (!customer.getDocumentNumber().equals(request.getDocumentNumber())) {
             var foundCustomer = customerRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
             if (foundCustomer != null) {
@@ -91,7 +75,7 @@ public class CustomerService {
     @Transactional
     public void delete(UUID id) {
         Customer customer = findById(id);
-        accountService.cancelByCustomerId(id);
+        accountService.deleteByCustomerId(id);
         customerRepository.delete(customer);
     }
 
@@ -112,5 +96,30 @@ public class CustomerService {
                 .stream()
                 .map(CustomerDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CustomerAccountResponse createAccount(UUID customerId) {
+        Customer customer = findById(customerId);
+        var account = accountService.createAccount(customer);
+        return new CustomerAccountResponse(account.getId());
+    }
+
+    public List<CustomerAccountResponse> listAccounts(UUID customerId) {
+        return accountService.findByCustomerId(customerId)
+                .stream()
+                .map(account -> new CustomerAccountResponse(account.getId()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteAccount(UUID customerId, UUID accountId) {
+        accountService.findByCustomerId(customerId)
+                .stream()
+                .filter(account -> account.getId().equals(accountId)).findFirst()
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+
+        cardService.deleteByAccountId(accountId);
+        accountService.deleteById(accountId);
     }
 }

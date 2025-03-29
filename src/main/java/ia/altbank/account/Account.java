@@ -15,6 +15,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "accounts")
 public class Account extends BaseEntity {
-    @ManyToOne(optional = false)
+
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
     private Customer customer;
 }
