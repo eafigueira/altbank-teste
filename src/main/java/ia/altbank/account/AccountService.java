@@ -1,6 +1,6 @@
 package ia.altbank.account;
 
-import ia.altbank.card.CardRepository;
+import ia.altbank.card.CardService;
 import ia.altbank.customer.Customer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -14,13 +14,13 @@ import java.util.UUID;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private final CardRepository cardRepository;
+    private final CardService cardService;
 
     @Transactional
     public void deleteByCustomerId(UUID customerId) {
         findByCustomerId(customerId)
                 .forEach(account -> {
-                            cardRepository.delete("account.id = ?1", account.getId());
+                            cardService.deleteByAccountId(account.getId());
                             accountRepository.delete("id = ?1", account.getId());
                         }
                 );

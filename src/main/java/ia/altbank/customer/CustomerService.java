@@ -69,7 +69,6 @@ public class CustomerService {
         customer.setName(request.getName());
         customer.setAddress(new Address(request.getAddress()));
         customerRepository.persist(customer);
-
     }
 
     @Transactional
