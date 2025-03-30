@@ -1,9 +1,11 @@
 package ia.altbank.customer;
 
-import ia.altbank.account.Account;
-import ia.altbank.account.AccountRepository;
+import ia.altbank.account.AccountEntity;
 import ia.altbank.account.AccountService;
-import ia.altbank.card.*;
+import ia.altbank.account.AccountStatus;
+import ia.altbank.card.CardEntity;
+import ia.altbank.card.CardService;
+import ia.altbank.card.CardType;
 import ia.altbank.exception.NotFoundException;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,73 +25,77 @@ public class CustomerService {
     private final AccountService accountService;
     private final CardService cardService;
 
+    private CustomerEntity findCustomerActive(UUID customerId) {
+        return customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE).firstResultOptional().orElseThrow(() -> new NotFoundException("Customer not found"));
+    }
+
+    private void validateCustomerByDocumentNumberActive(String documentNumber) {
+        var customer = customerRepository.find("documentNumber = ?1 AND status = ?2", documentNumber, CustomerStatus.ACTIVE).firstResultOptional();
+        if (customer.isPresent()) {
+            throw new IllegalStateException("Customer with document number " + documentNumber + " already exists");
+        }
+    }
+
+    private CustomerEntity createNewCustomer(CreateCustomerRequest request) {
+        CustomerEntity customer = new CustomerEntity();
+        customer.setName(request.getName());
+        customer.setDocumentNumber(request.getDocumentNumber());
+        customer.setEmail(request.getEmail());
+
+        CustomerAddress address = new CustomerAddress(request.getAddress());
+        customer.setAddress(address);
+        return customer;
+    }
+
     @Transactional
     public CreateCustomerResponse create(CreateCustomerRequest request) {
-        var foundCustomer = customerRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
-        if (foundCustomer != null) {
-            throw new IllegalStateException("Customer with document number " + request.getDocumentNumber() + " already exists");
-        }
 
-        Customer customer = createCustomer(request);
+        validateCustomerByDocumentNumberActive(request.getDocumentNumber());
+
+        CustomerEntity customer = createNewCustomer(request);
         customerRepository.persist(customer);
-        Account account = accountService.createAccount(customer);
-
-        Card newCard = cardService.createCard(account, CardType.PHYSICAL);
+        AccountEntity account = accountService.createAccount(customer);
+        CardEntity newCard = cardService.createCard(account, CardType.PHYSICAL);
 
         return CreateCustomerResponse.builder()
                 .customerId(customer.getId())
                 .accountId(account.getId())
                 .cardId(newCard.getId())
                 .address(new AddressDTO(customer.getAddress()))
+                .status(customer.getStatus())
                 .build();
-    }
-
-    private Customer createCustomer(CreateCustomerRequest request) {
-        Customer customer = new Customer();
-        customer.setName(request.getName());
-        customer.setDocumentNumber(request.getDocumentNumber());
-        customer.setEmail(request.getEmail());
-
-        Address address = new Address(request.getAddress());
-        customer.setAddress(address);
-        return customer;
     }
 
     @Transactional
     public void update(UUID id, @Valid UpdateCustomerRequest request) {
-        Customer customer = findById(id);
+        CustomerEntity customer = findCustomerActive(id);
+
         if (!customer.getDocumentNumber().equals(request.getDocumentNumber())) {
-            var foundCustomer = customerRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
-            if (foundCustomer != null) {
-                throw new IllegalStateException("Customer with document number " + request.getDocumentNumber() + " already exists");
-            }
+            validateCustomerByDocumentNumberActive(request.getDocumentNumber());
         }
+
         customer.setDocumentNumber(request.getDocumentNumber());
         customer.setEmail(request.getEmail());
         customer.setName(request.getName());
-        customer.setAddress(new Address(request.getAddress()));
+        customer.setAddress(new CustomerAddress(request.getAddress()));
         customerRepository.persist(customer);
     }
 
     @Transactional
     public void delete(UUID id) {
-        Customer customer = findById(id);
-        accountService.deleteByCustomerId(id);
-        customerRepository.delete(customer);
+        CustomerEntity customer = findCustomerActive(id);
+        accountService.inactivateByCustomerId(id);
+        customer.setStatus(CustomerStatus.INACTIVE);
+        customerRepository.persist(customer);
     }
 
     public CustomerDTO findOne(UUID id) {
-        Customer customer = findById(id);
+        CustomerEntity customer = findCustomerActive(id);
         return new CustomerDTO(customer);
     }
 
-    private Customer findById(UUID id) {
-        return customerRepository.findByIdOptional(id)
-                .orElseThrow(() -> new NotFoundException("Customer not found"));
-    }
-
     public List<CustomerDTO> listAll(int page, int size) {
-        return customerRepository.findAll()
+        return customerRepository.find("status = ?1", CustomerStatus.ACTIVE)
                 .page(Page.of(page, size))
                 .list()
                 .stream()
@@ -99,27 +105,30 @@ public class CustomerService {
 
     @Transactional
     public CustomerAccountResponse createAccount(UUID customerId) {
-        Customer customer = findById(customerId);
+        CustomerEntity customer = findCustomerActive(customerId);
         var account = accountService.createAccount(customer);
         cardService.createCard(account, CardType.PHYSICAL);
         return new CustomerAccountResponse(account.getId());
     }
 
     public List<CustomerAccountResponse> listAccounts(UUID customerId) {
-        return accountService.findByCustomerId(customerId)
+        findCustomerActive(customerId);
+        return accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)
                 .stream()
                 .map(account -> new CustomerAccountResponse(account.getId()))
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public void deleteAccount(UUID customerId, UUID accountId) {
-        accountService.findByCustomerId(customerId)
+    public void deactivateAccount(UUID customerId, UUID accountId) {
+        findCustomerActive(customerId);
+        var account = accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)
                 .stream()
-                .filter(account -> account.getId().equals(accountId)).findFirst()
+                .filter(acc -> acc.getId().equals(accountId)).findFirst()
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
-        cardService.deleteByAccountId(accountId);
-        accountService.deleteById(accountId);
+        accountService.deactivateAccount(account);
     }
+
+
 }

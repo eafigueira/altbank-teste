@@ -1,12 +1,12 @@
 package ia.altbank.account;
 
 import ia.altbank.card.CardService;
-import ia.altbank.customer.Customer;
+import ia.altbank.customer.CustomerEntity;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -16,22 +16,25 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final CardService cardService;
 
-    public void deleteByCustomerId(UUID customerId) {
-        findByCustomerId(customerId)
+    public void deactivateAccount(AccountEntity account) {
+        account.setStatus(AccountStatus.INACTIVE);
+        accountRepository.persist(account);
+    }
+
+    public void inactivateByCustomerId(UUID customerId) {
+        findByCustomerId(customerId, AccountStatus.ACTIVE)
                 .forEach(account -> {
-                            cardService.deleteByAccountId(account.getId());
-                            var accountFound = accountRepository.findById(account.getId());
-                            accountRepository.delete(accountFound);
-                        }
-                );
+                    deactivateAccount(account);
+                    cardService.inactivateCardsByAccountId(account.getId());
+                });
     }
 
-    public List<Account> findByCustomerId(UUID customerId) {
-        return accountRepository.find("customer.id = ?1", customerId).list();
+    public List<AccountEntity> findByCustomerId(UUID customerId, AccountStatus status) {
+        return accountRepository.find("customer.id = ?1 AND status = ?2", customerId, status).list();
     }
 
-    public Account createAccount(Customer customer) {
-        Account account = new Account();
+    public AccountEntity createAccount(CustomerEntity customer) {
+        AccountEntity account = new AccountEntity();
         account.setCustomer(customer);
         accountRepository.persist(account);
         return account;
@@ -39,5 +42,9 @@ public class AccountService {
 
     public void deleteById(UUID accountId) {
         accountRepository.delete("id = ?1", accountId);
+    }
+
+    public Optional<AccountEntity> findByIdOptional(UUID accountId) {
+        return accountRepository.findByIdOptional(accountId);
     }
 }

@@ -14,4 +14,5 @@ public class CreateCustomerResponse {
     private UUID accountId;
     private UUID cardId;
     private AddressDTO address;
+    private CustomerStatus status;
 }

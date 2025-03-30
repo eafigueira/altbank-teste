@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @Embeddable
 @NoArgsConstructor
-public class Address {
+public class CustomerAddress {
     @Column(nullable = false, length = 150)
     private String street;
     @Column(length = 50)
@@ -27,7 +27,7 @@ public class Address {
     @Column(nullable = false, length = 10)
     private String zipCode;
 
-    public Address(@NotNull CustomerAddressRequest address) {
+    public CustomerAddress(@NotNull CustomerAddressRequest address) {
         this.street = address.getStreet();
         this.number = address.getNumber();
         this.complement = address.getComplement();

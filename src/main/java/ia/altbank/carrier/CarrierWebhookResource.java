@@ -23,7 +23,7 @@ public class CarrierWebhookResource {
                                           @HeaderParam("X-Client-Secret") String clientSecret,
                                           @Valid CardDeliveryWebhookRequest payload) {
 
-        Carrier carrier = carrierService.validateCarrier(clientId, clientSecret);
+        CarrierEntity carrier = carrierService.validateCarrier(clientId, clientSecret);
 
         if (carrier == null) {
             return Response.status(Response.Status.UNAUTHORIZED).build();

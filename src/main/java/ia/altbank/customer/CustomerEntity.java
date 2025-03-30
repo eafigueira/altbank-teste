@@ -13,11 +13,21 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "customers")
-public class Customer extends BaseEntity {
+public class CustomerEntity extends BaseEntity {
+
     private String name;
     @Column(nullable = false, name = "document_number")
     private String documentNumber;
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    private CustomerStatus status;
+
     @Embedded
-    private Address address;
+    private CustomerAddress address;
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null) status = CustomerStatus.ACTIVE;
+    }
 }

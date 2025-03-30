@@ -11,7 +11,7 @@ public class WebhookService {
 
     @Transactional
     public boolean processDelivery(CardDeliveryWebhookRequest payload) {
-        Card card = cardRepository.find("deliveryTrackingId", payload.getTrackingId()).firstResult();
+        CardEntity card = cardRepository.find("deliveryTrackingId", payload.getTrackingId()).firstResult();
         if (card == null) return false;
 
 //        card.setDeliveryStatus(payload.getDeliveryStatus());

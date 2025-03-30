@@ -1,6 +1,5 @@
 package ia.altbank.carrier;
 
-import ia.altbank.customer.CustomerDTO;
 import ia.altbank.exception.NotFoundException;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,8 +15,12 @@ import java.util.stream.Collectors;
 public class CarrierService {
     private final CarrierRepository carrierRepository;
 
-    public Carrier validateCarrier(String clientId, String clientSecret) {
-        Carrier carrier = carrierRepository.find("clientId", clientId).firstResult();
+    private CarrierEntity findCarrierActive(UUID carrierId) {
+        return carrierRepository.find("id = ?1 AND status = ?2", carrierId, CarrierStatus.ACTIVE).firstResultOptional().orElseThrow(() -> new NotFoundException("Carrier not found"));
+    }
+
+    public CarrierEntity validateCarrier(String clientId, String clientSecret) {
+        CarrierEntity carrier = carrierRepository.find("clientId", clientId).firstResult();
         if (carrier == null || !carrier.getClientSecret().equals(clientSecret)) {
             return null;
         }
@@ -25,7 +28,7 @@ public class CarrierService {
     }
 
     public List<CarrierResponse> findAll(int page, int size) {
-        return carrierRepository.findAll()
+        return carrierRepository.find("status = ?1", CarrierStatus.ACTIVE)
                 .page(Page.of(page, size))
                 .list()
                 .stream()
@@ -35,8 +38,7 @@ public class CarrierService {
     }
 
     public CarrierResponse findById(UUID id, boolean includeAuthInfo) {
-        var result = carrierRepository.findByIdOptional(id)
-                .orElseThrow(() -> new NotFoundException("Carrier not found"));
+        var result = findCarrierActive(id);
         CarrierResponse response = toResponse(result);
         if (!includeAuthInfo) response.hideAuthInfo();
         return response;
@@ -44,11 +46,11 @@ public class CarrierService {
 
     @Transactional
     public CarrierResponse create(CarrierRequest request) {
-        var foundCarrier = carrierRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
+        var foundCarrier = carrierRepository.find("documentNumber = ?1 AND status = ?2", request.getDocumentNumber(), CarrierStatus.ACTIVE).firstResult();
         if (foundCarrier != null)
             throw new IllegalStateException("Carrier with document number " + request.getDocumentNumber() + " already exists");
 
-        Carrier carrier = new Carrier();
+        CarrierEntity carrier = new CarrierEntity();
         carrier.setName(request.getName());
         carrier.setDocumentNumber(request.getDocumentNumber());
         carrier.setClientId(UUID.randomUUID().toString());
@@ -61,7 +63,7 @@ public class CarrierService {
 
     @Transactional
     public CarrierResponse update(UUID id, CarrierRequest request) {
-        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
+        CarrierEntity carrier = findCarrierActive(id);
         if (!carrier.getDocumentNumber().equals(request.getDocumentNumber())) {
             var foundCarrier = carrierRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
             if (foundCarrier != null) {
@@ -76,7 +78,7 @@ public class CarrierService {
 
     @Transactional
     public CarrierResponse regenerateCredentials(UUID id) {
-        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
+        CarrierEntity carrier = findCarrierActive(id);
         carrier.setClientId(UUID.randomUUID().toString());
         carrier.setClientSecret(UUID.randomUUID().toString());
         carrierRepository.persist(carrier);
@@ -86,19 +88,12 @@ public class CarrierService {
 
     @Transactional
     public void inactivate(UUID id) {
-        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
+        CarrierEntity carrier = findCarrierActive(id);
         carrier.setStatus(CarrierStatus.INACTIVE);
         carrierRepository.persist(carrier);
     }
 
-    @Transactional
-    public void activate(UUID id) {
-        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
-        carrier.setStatus(CarrierStatus.ACTIVE);
-        carrierRepository.persist(carrier);
-    }
-
-    private CarrierResponse toResponse(Carrier carrier) {
+    private CarrierResponse toResponse(CarrierEntity carrier) {
         return CarrierResponse.builder()
                 .id(carrier.getId())
                 .name(carrier.getName())

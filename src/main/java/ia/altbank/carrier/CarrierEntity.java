@@ -13,7 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "carriers")
-public class Carrier extends BaseEntity {
+public class CarrierEntity extends BaseEntity {
 
     private String name;
 
@@ -28,5 +28,10 @@ public class Carrier extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private CarrierStatus status;
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null) status = CarrierStatus.ACTIVE;
+    }
 
 }

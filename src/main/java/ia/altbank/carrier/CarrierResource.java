@@ -3,7 +3,6 @@ package ia.altbank.carrier;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -45,14 +44,8 @@ public class CarrierResource {
         return carrierService.regenerateCredentials(id);
     }
 
-    @PUT
-    @Path("/{id}/activate")
-    public void activate(@PathParam("id") UUID id) {
-        carrierService.activate(id);
-    }
-
-    @PUT
-    @Path("/{id}/inactivate")
+    @DELETE
+    @Path("/{id}")
     public void inactivate(@PathParam("id") UUID id) {
         carrierService.inactivate(id);
     }

@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
-public class CardRepository implements PanacheRepositoryBase<Card, UUID> {
-    public List<Card> findAllByAccountId(UUID id) {
+public class CardRepository implements PanacheRepositoryBase<CardEntity, UUID> {
+    public List<CardEntity> findAllByAccountId(UUID id) {
         return find("account.id = ?1", id).list();
     }
 }

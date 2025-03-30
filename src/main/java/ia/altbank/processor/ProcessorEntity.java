@@ -13,7 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "processors")
-public class Processor extends BaseEntity {
+public class ProcessorEntity extends BaseEntity {
     @Column(nullable = false)
     private String name;
 

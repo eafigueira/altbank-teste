@@ -62,9 +62,9 @@ public class CustomerResource {
 
     @DELETE
     @Path("/{customerId}/accounts/{accountId}")
-    public void listAccounts(@PathParam("customerId") UUID customerId,
+    public void deactivateAccount(@PathParam("customerId") UUID customerId,
                              @PathParam("accountId") UUID accountId) {
-        service.deleteAccount(customerId, accountId);
+        service.deactivateAccount(customerId, accountId);
     }
 
 }

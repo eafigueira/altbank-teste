@@ -18,8 +18,9 @@ public class CustomerDTO {
     private String documentNumber;
     private String email;
     private AddressDTO address;
+    private CustomerStatus status;
 
-    public CustomerDTO(Customer customer) {
+    public CustomerDTO(CustomerEntity customer) {
         this.id = customer.getId();
         this.createdAt = customer.getCreatedAt();
         this.updatedAt = customer.getUpdatedAt();
@@ -27,5 +28,6 @@ public class CustomerDTO {
         this.documentNumber = customer.getDocumentNumber();
         this.email = customer.getEmail();
         this.address = new AddressDTO(customer.getAddress());
+        this.status = customer.getStatus();
     }
 }

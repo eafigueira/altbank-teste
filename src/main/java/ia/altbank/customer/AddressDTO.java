@@ -18,7 +18,7 @@ public class AddressDTO implements Serializable {
     private String state;
     private String zipCode;
 
-    public AddressDTO(Address address) {
+    public AddressDTO(CustomerAddress address) {
         this.street = address.getStreet();
         this.number = address.getNumber();
         this.complement = address.getComplement();
