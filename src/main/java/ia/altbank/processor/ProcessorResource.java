@@ -41,14 +41,9 @@ public class ProcessorResource {
         return service.regenerateCredentials(id);
     }
 
-    @PUT
-    @Path("/{id}/activate")
-    public void activate(@PathParam("id") UUID id) {
-        service.activate(id);
-    }
 
-    @PUT
-    @Path("/{id}/inactivate")
+    @DELETE
+    @Path("/{id}")
     public void inactivate(@PathParam("id") UUID id) {
         service.inactivate(id);
     }

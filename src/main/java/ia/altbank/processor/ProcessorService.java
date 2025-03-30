@@ -64,12 +64,6 @@ public class ProcessorService {
         processor.setStatus(ProcessorStatus.INACTIVE);
         repository.persist(processor);
     }
-    @Transactional
-    public void activate(UUID id) {
-        ProcessorEntity processor = repository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Processor not found"));
-        processor.setStatus(ProcessorStatus.ACTIVE);
-        repository.persist(processor);
-    }
 
     private ProcessorResponse toResponse(ProcessorEntity processor) {
         return ProcessorResponse.builder()
