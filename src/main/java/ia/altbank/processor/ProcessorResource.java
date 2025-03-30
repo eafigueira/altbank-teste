@@ -58,6 +58,4 @@ public class ProcessorResource {
                                            @QueryParam("size") @DefaultValue("20") int size) {
         return service.list(page, size);
     }
-
-
 }
