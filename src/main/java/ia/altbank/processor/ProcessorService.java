@@ -16,6 +16,12 @@ public class ProcessorService {
 
     private final ProcessorRepository repository;
 
+    private ProcessorEntity findProcessorActive(UUID processorId) {
+        return repository.find("id = ?1 AND status = ?2", processorId, ProcessorStatus.ACTIVE).firstResultOptional()
+                .orElseThrow(() -> new NotFoundException("Processor not found"));
+    }
+
+
     @Transactional
     public ProcessorResponse create(ProcessorRequest request) {
         ProcessorEntity processor = new ProcessorEntity();
@@ -30,13 +36,13 @@ public class ProcessorService {
 
     @Transactional
     public void update(UUID id, ProcessorRequest request) {
-        ProcessorEntity processor = repository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Processor not found"));
+        ProcessorEntity processor = findProcessorActive(id);
         processor.setName(request.getName());
         repository.persist(processor);
     }
     @Transactional
     public ProcessorResponse regenerateCredentials(UUID id) {
-        ProcessorEntity processor = repository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Processor not found"));
+        ProcessorEntity processor = findProcessorActive(id);
         processor.setClientId(UUID.randomUUID().toString());
         processor.setClientSecret(UUID.randomUUID().toString());
         repository.persist(processor);
@@ -45,7 +51,7 @@ public class ProcessorService {
     }
 
     public List<ProcessorResponse> list(int page, int size) {
-        return repository.findAll()
+        return repository.find("status = ?1", ProcessorStatus.ACTIVE)
                 .page(Page.of(page, size))
                 .list()
                 .stream()
@@ -55,12 +61,12 @@ public class ProcessorService {
     }
 
     public ProcessorResponse findOne(UUID id) {
-        ProcessorEntity processor = repository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Processor not found"));
+        ProcessorEntity processor = findProcessorActive(id);
         return toResponse(processor);
     }
     @Transactional
     public void inactivate(UUID id) {
-        ProcessorEntity processor = repository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Processor not found"));
+        ProcessorEntity processor = findProcessorActive(id);
         processor.setStatus(ProcessorStatus.INACTIVE);
         repository.persist(processor);
     }
