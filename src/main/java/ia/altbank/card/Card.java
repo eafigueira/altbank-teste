@@ -29,14 +29,14 @@ public class Card extends BaseEntity {
     private LocalDateTime cvvExpiration;
     @Enumerated(EnumType.STRING)
     private CardStatus status;
-    @Column(name = "delivery_tracking_id")
-    private String deliveryTrackingId;
-    @Column(name = "delivery_status")
-    private String deliveryStatus;
-    @Column(name = "delivery_date")
-    private LocalDateTime deliveryDate;
-    @Column(name = "delivery_return_reason")
-    private String deliveryReturnReason;
+//    @Column(name = "delivery_tracking_id")
+//    private String deliveryTrackingId;
+//    @Column(name = "delivery_status")
+//    private String deliveryStatus;
+//    @Column(name = "delivery_date")
+//    private LocalDateTime deliveryDate;
+//    @Column(name = "delivery_return_reason")
+//    private String deliveryReturnReason;
 
     @PrePersist
     public void prePersist() {

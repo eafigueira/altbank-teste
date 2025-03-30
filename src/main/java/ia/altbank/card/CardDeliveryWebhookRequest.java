@@ -1,4 +1,4 @@
-package ia.altbank.carrier;
+package ia.altbank.card;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.*;

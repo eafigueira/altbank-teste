@@ -1,4 +1,4 @@
-package ia.altbank.carrier;
+package ia.altbank.processor;
 
 import ia.altbank.base.BaseEntity;
 import jakarta.persistence.*;
@@ -12,13 +12,10 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "carriers")
-public class Carrier extends BaseEntity {
-
+@Table(name = "processors")
+public class Processor extends BaseEntity {
+    @Column(nullable = false)
     private String name;
-
-    @Column(unique = true, nullable = false, name = "document_number")
-    private String documentNumber;
 
     @Column(unique = true, nullable = false, name = "client_id")
     private String clientId;
@@ -27,6 +24,6 @@ public class Carrier extends BaseEntity {
     private String clientSecret;
 
     @Enumerated(EnumType.STRING)
-    private CarrierStatus status;
+    private ProcessorStatus status;
 
 }

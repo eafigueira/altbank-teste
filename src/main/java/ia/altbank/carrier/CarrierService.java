@@ -18,7 +18,7 @@ public class CarrierService {
 
     public Carrier validateCarrier(String clientId, String clientSecret) {
         Carrier carrier = carrierRepository.find("clientId", clientId).firstResult();
-        if (carrier == null || !carrier.getClientSecret().equals(clientSecret) || !carrier.isDefaultCarrier()) {
+        if (carrier == null || !carrier.getClientSecret().equals(clientSecret)) {
             return null;
         }
         return carrier;
@@ -32,10 +32,6 @@ public class CarrierService {
                 .map(this::toResponse)
                 .peek(CarrierResponse::hideAuthInfo)
                 .collect(Collectors.toList());
-    }
-
-    public CarrierResponse findById(UUID id) {
-        return findById(id, false);
     }
 
     public CarrierResponse findById(UUID id, boolean includeAuthInfo) {
@@ -55,23 +51,17 @@ public class CarrierService {
         Carrier carrier = new Carrier();
         carrier.setName(request.getName());
         carrier.setDocumentNumber(request.getDocumentNumber());
-        carrier.setDefaultCarrier(request.isDefaultCarrier());
         carrier.setClientId(UUID.randomUUID().toString());
         carrier.setClientSecret(UUID.randomUUID().toString());
+        carrier.setStatus(CarrierStatus.ACTIVE);
 
-        if (request.isDefaultCarrier()) {
-            carrierRepository.update("defaultCarrier = false");
-        }
         carrierRepository.persist(carrier);
         return toResponse(carrier);
     }
 
     @Transactional
     public CarrierResponse update(UUID id, CarrierRequest request) {
-        Carrier carrier = carrierRepository.findById(id);
-        if (carrier == null) {
-            throw new NotFoundException("Carrier not found");
-        }
+        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
         if (!carrier.getDocumentNumber().equals(request.getDocumentNumber())) {
             var foundCarrier = carrierRepository.find("documentNumber = ?1", request.getDocumentNumber()).firstResult();
             if (foundCarrier != null) {
@@ -80,32 +70,32 @@ public class CarrierService {
         }
         carrier.setName(request.getName());
         carrier.setDocumentNumber(request.getDocumentNumber());
-        if (request.isDefaultCarrier()) {
-            carrierRepository.update("defaultCarrier = false");
-        }
-        carrier.setDefaultCarrier(request.isDefaultCarrier());
+        carrierRepository.persist(carrier);
         return toResponse(carrier);
     }
 
     @Transactional
     public CarrierResponse regenerateCredentials(UUID id) {
-        Carrier carrier = carrierRepository.findById(id);
-        if (carrier == null) {
-            throw new NotFoundException("Carrier not found");
-        }
+        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
         carrier.setClientId(UUID.randomUUID().toString());
         carrier.setClientSecret(UUID.randomUUID().toString());
+        carrierRepository.persist(carrier);
 
         return toResponse(carrier);
     }
 
     @Transactional
-    public void delete(UUID id) {
-        Carrier carrier = carrierRepository.findById(id);
-        if (carrier != null && carrier.isDefaultCarrier()) {
-            throw new IllegalStateException("Cannot delete the default carrier");
-        }
-        carrierRepository.delete(carrier);
+    public void inactivate(UUID id) {
+        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
+        carrier.setStatus(CarrierStatus.INACTIVE);
+        carrierRepository.persist(carrier);
+    }
+
+    @Transactional
+    public void activate(UUID id) {
+        Carrier carrier = carrierRepository.findByIdOptional(id).orElseThrow(() -> new NotFoundException("Carrier not found"));
+        carrier.setStatus(CarrierStatus.ACTIVE);
+        carrierRepository.persist(carrier);
     }
 
     private CarrierResponse toResponse(Carrier carrier) {
@@ -115,7 +105,7 @@ public class CarrierService {
                 .documentNumber(carrier.getDocumentNumber())
                 .clientId(carrier.getClientId())
                 .clientSecret(carrier.getClientSecret())
-                .defaultCarrier(carrier.isDefaultCarrier())
+                .status(carrier.getStatus())
                 .build();
     }
 }

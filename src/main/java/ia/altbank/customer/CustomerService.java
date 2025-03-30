@@ -101,6 +101,7 @@ public class CustomerService {
     public CustomerAccountResponse createAccount(UUID customerId) {
         Customer customer = findById(customerId);
         var account = accountService.createAccount(customer);
+        cardService.createCard(account, CardType.PHYSICAL);
         return new CustomerAccountResponse(account.getId());
     }
 

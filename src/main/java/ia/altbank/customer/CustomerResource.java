@@ -25,8 +25,9 @@ public class CustomerResource {
 
     @PUT
     @Path("/{id}")
-    public void update(@PathParam("id") UUID id, @Valid UpdateCustomerRequest request) {
+    public Response update(@PathParam("id") UUID id, @Valid UpdateCustomerRequest request) {
         service.update(id, request);
+        return Response.status(Response.Status.OK).build();
     }
 
     @DELETE

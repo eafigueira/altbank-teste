@@ -1,4 +1,4 @@
-package ia.altbank.carrier;
+package ia.altbank.processor;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
@@ -11,13 +11,12 @@ import java.util.UUID;
 @Setter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CarrierResponse {
+public class ProcessorResponse {
     private UUID id;
     private String name;
-    private String documentNumber;
     private String clientId;
     private String clientSecret;
-    private CarrierStatus status;
+    private ProcessorStatus status;
 
     public void hideAuthInfo() {
         this.clientSecret = null;

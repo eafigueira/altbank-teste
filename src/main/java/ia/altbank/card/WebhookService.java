@@ -1,6 +1,5 @@
 package ia.altbank.card;
 
-import ia.altbank.carrier.CardDeliveryWebhookRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +14,13 @@ public class WebhookService {
         Card card = cardRepository.find("deliveryTrackingId", payload.getTrackingId()).firstResult();
         if (card == null) return false;
 
-        card.setDeliveryStatus(payload.getDeliveryStatus());
-        card.setDeliveryDate(payload.getDeliveryDate());
-        card.setDeliveryReturnReason(payload.getDeliveryReturnReason());
+//        card.setDeliveryStatus(payload.getDeliveryStatus());
+//        card.setDeliveryDate(payload.getDeliveryDate());
+//        card.setDeliveryReturnReason(payload.getDeliveryReturnReason());
 
-        if ("DELIVERED".equalsIgnoreCase(payload.getDeliveryStatus())) {
-            card.setStatus(CardStatus.DELIVERED);
-        }
+//        if ("DELIVERED".equalsIgnoreCase(payload.getDeliveryStatus())) {
+//            card.setStatus(CardStatus.DELIVERED);
+//        }
 
         return true;
     }

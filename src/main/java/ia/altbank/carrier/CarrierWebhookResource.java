@@ -1,5 +1,6 @@
 package ia.altbank.carrier;
 
+import ia.altbank.card.CardDeliveryWebhookRequest;
 import ia.altbank.card.WebhookService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;

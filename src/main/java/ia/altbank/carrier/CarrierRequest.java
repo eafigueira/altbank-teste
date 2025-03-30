@@ -11,6 +11,5 @@ public class CarrierRequest {
     private String name;
     @NotNull(message = "Document number is required")
     private String documentNumber;
-    private boolean defaultCarrier;
 
 }

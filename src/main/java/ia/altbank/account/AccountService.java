@@ -16,12 +16,12 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final CardService cardService;
 
-    @Transactional
     public void deleteByCustomerId(UUID customerId) {
         findByCustomerId(customerId)
                 .forEach(account -> {
                             cardService.deleteByAccountId(account.getId());
-                            accountRepository.delete("id = ?1", account.getId());
+                            var accountFound = accountRepository.findById(account.getId());
+                            accountRepository.delete(accountFound);
                         }
                 );
     }
