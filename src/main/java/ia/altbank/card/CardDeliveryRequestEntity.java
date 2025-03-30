@@ -36,6 +36,9 @@ public class CardDeliveryRequestEntity extends BaseEntity {
     @Column(name = "delivery_address", nullable = false)
     private String deliveryAddress;
 
+    @Column(name = "delivery_return_reason")
+    private String deliveryReturnReason;
+
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 }

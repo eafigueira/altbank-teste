@@ -3,7 +3,9 @@ package ia.altbank.card;
 import ia.altbank.carrier.CarrierRepository;
 import ia.altbank.customer.CustomerAddress;
 import ia.altbank.exception.NotFoundException;
+import ia.altbank.hooks.CardDeliveryWebhookRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Comparator;
@@ -15,6 +17,7 @@ import java.util.UUID;
 public class CardDeliveryRequestService {
 
     private final CardDeliveryRequestRepository cardDeliveryRequestRepository;
+    private final CardService cardService;
     private final CarrierRepository carrierRepository;
 
     public CardDeliveryResponse getLastDeliveryCardRequest(UUID cardId) {
@@ -28,6 +31,14 @@ public class CardDeliveryRequestService {
 
     public CardDeliveryResponse createCardDeliveryRequest(CardEntity card, UUID carrierId, CustomerAddress address) {
         var carrier = carrierRepository.find("id = ?1", carrierId).firstResultOptional().orElseThrow(() -> new NotFoundException("Carrier not found"));
+
+        var deliveryRequests = cardDeliveryRequestRepository.find("card.id = ?1 AND carrier.id = ?2", card.getId(), carrier.getId())
+                .stream()
+                .filter(deliveryRequest -> !deliveryRequest.getDeliveryStatus().equals(DeliveryStatus.CANCELED));
+
+        if (deliveryRequests.findAny().isPresent()) {
+            throw new IllegalStateException("Delivery request already exists");
+        }
 
         CardDeliveryRequestEntity deliveryRequest = new CardDeliveryRequestEntity();
         deliveryRequest.setCard(card);
@@ -79,6 +90,7 @@ public class CardDeliveryRequestService {
     private CardDeliveryResponse toResponse(CardDeliveryRequestEntity deliveryRequestEntity) {
         return CardDeliveryResponse.builder()
                 .id(deliveryRequestEntity.getId())
+                .cardId(deliveryRequestEntity.getCard().getId())
                 .carrierId(deliveryRequestEntity.getCarrier().getId())
                 .trackingCode(deliveryRequestEntity.getTrackingCode())
                 .createdAt(deliveryRequestEntity.getCreatedAt())
@@ -96,5 +108,22 @@ public class CardDeliveryRequestService {
                 .orElseThrow(() -> new NotFoundException("Card delivery request not found"));
         cardDeliveryRequest.setDeliveryStatus(DeliveryStatus.CANCELED);
         cardDeliveryRequestRepository.persist(cardDeliveryRequest);
+    }
+
+    @Transactional
+    public void processDelivery(CardDeliveryWebhookRequest payload) {
+        var deliveryRequests = cardDeliveryRequestRepository.find("tracking_code = ?1", payload.getTrackingId()).list();
+        if (deliveryRequests.isEmpty()) {
+            throw new IllegalStateException("Delivery request not found with tracking code " + payload.getTrackingId());
+        }
+        var deliveryRequest = deliveryRequests.get(0);
+        deliveryRequest.setDeliveredAt(payload.getDeliveryDate());
+        deliveryRequest.setDeliveryStatus(DeliveryStatus.valueOf(payload.getDeliveryStatus()));
+        deliveryRequest.setDeliveryReturnReason(payload.getDeliveryReturnReason());
+        cardDeliveryRequestRepository.persist(deliveryRequest);
+
+        if (DeliveryStatus.DELIVERED.equals(deliveryRequest.getDeliveryStatus())) {
+            cardService.activateCard(deliveryRequest.getCard());
+        }
     }
 }

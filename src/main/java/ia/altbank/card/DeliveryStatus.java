@@ -5,5 +5,5 @@ public enum DeliveryStatus {
     SENT,
     DELIVERED,
     FAILED,
-    CANCELED, CANCELLED
+    CANCELED
 }

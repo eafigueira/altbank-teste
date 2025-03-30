@@ -67,6 +67,11 @@ public class CardService {
         cardRepository.persist(card);
     }
 
+    public void activateCard(CardEntity card) {
+        card.setStatus(CardStatus.ACTIVE);
+        cardRepository.persist(card);
+    }
+
     public void inactivateCardsByAccountId(UUID accountId) {
         cardRepository.list("account.id = ?1", accountId).forEach(this::inactivateCard);
     }

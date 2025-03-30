@@ -12,6 +12,7 @@ import java.util.UUID;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CardDeliveryResponse {
     private UUID id;
+    private UUID cardId;
     private UUID carrierId;
     private String trackingCode;
     private DeliveryStatus deliveryStatus;

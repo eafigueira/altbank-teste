@@ -1,35 +1,34 @@
-package ia.altbank.carrier;
+package ia.altbank.hooks;
 
-import ia.altbank.card.CardDeliveryWebhookRequest;
-import ia.altbank.card.WebhookService;
+import ia.altbank.card.CardDeliveryRequestService;
+import ia.altbank.carrier.CarrierEntity;
+import ia.altbank.carrier.CarrierService;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 
-@Path("/webhook/carrier")
+@Path("/webhook")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @RequiredArgsConstructor
-public class CarrierWebhookResource {
-    private final WebhookService webhookService;
+public class WebhookResource {
     private final CarrierService carrierService;
+    private final CardDeliveryRequestService cardDeliveryRequestService;
 
+    @POST
+    @Path("/delivery")
     public Response receiveDeliveryUpdate(@HeaderParam("X-Client-Id") String clientId,
                                           @HeaderParam("X-Client-Secret") String clientSecret,
                                           @Valid CardDeliveryWebhookRequest payload) {
-
         CarrierEntity carrier = carrierService.validateCarrier(clientId, clientSecret);
 
         if (carrier == null) {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        boolean success = webhookService.processDelivery(payload);
-        return success ? Response.ok().build() : Response.status(Response.Status.NOT_FOUND).build();
+        cardDeliveryRequestService.processDelivery(payload);
+        return Response.noContent().build();
     }
 }
