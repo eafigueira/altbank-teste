@@ -1,10 +1,9 @@
 package ia.altbank.card;
 
 import ia.altbank.account.AccountEntity;
-import ia.altbank.account.AccountService;
+import ia.altbank.customer.CustomerAddress;
 import ia.altbank.exception.NotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -16,8 +15,7 @@ import java.util.UUID;
 public class CardService {
 
     private final CardRepository cardRepository;
-    private final AccountService accountService;
-    private final CardDeliveryService cardDeliveryService;
+    private final CardDeliveryRequestService cardDeliveryRequestService;
 
     private CardEntity generateNewCard(AccountEntity account, CardType cardType) {
         CardEntity card = new CardEntity();
@@ -44,14 +42,6 @@ public class CardService {
         return result.toString();
     }
 
-    private AccountEntity findAccount(UUID accountId) {
-        return accountService.findByIdOptional(accountId).orElseThrow(() -> new NotFoundException("Account not found"));
-    }
-
-    private CardEntity findCard(UUID cardId) {
-        return cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
-    }
-
     private CardResponse toResponse(CardEntity card) {
         return CardResponse.builder()
                 .type(card.getType())
@@ -63,62 +53,67 @@ public class CardService {
                 .build();
     }
 
-    public CardEntity createCard(AccountEntity account, CardType cardType) {
-        CardEntity card = generateNewCard(account, cardType);
-        card.setCvv(generateRandomCvv());
-        cardRepository.persist(card);
-        return card;
-    }
 
-    @Transactional
-    public CardResponse createCard(UUID accountId, CardType cardType) {
-       var account = findAccount(accountId);
+    public CardResponse createCard(AccountEntity account, CardType cardType) {
         CardEntity card = generateNewCard(account, cardType);
         card.setCvv(generateRandomCvv());
         cardRepository.persist(card);
         return toResponse(card);
     }
 
-    @Transactional
-    public void delete(UUID cardId) {
-        var card = findCard(cardId);
-        cardRepository.delete(card);
-    }
-
-    public CardResponse getCard(UUID cardId) {
-        var card = findCard(cardId);
-        return toResponse(card);
-    }
-
-    public List<CardResponse> getAll(UUID accountId) {
-        findAccount(accountId);
-        return cardRepository.list("account.id = ?1", accountId).stream().map(this::toResponse).toList();
-    }
-
-    public CardResponse activateCard(UUID cardId) {
-        var card = findCard(cardId);
-        if (CardStatus.ACTIVE.equals(card.getStatus())) {
-            throw new IllegalStateException("Card is already active");
-        }
-        if (CardType.PHYSICAL.equals(card.getType())) {
-            cardDeliveryService.checkCardDeliveryRequest(card.getId());
-        }
-        card.setStatus(CardStatus.ACTIVE);
-        cardRepository.persist(card);
-        return toResponse(card);
-    }
-
-    private void deactivateCard(CardEntity card) {
+    private void inactivateCard(CardEntity card) {
+        cardDeliveryRequestService.cancelCardDeliveriesByCardId(card);
         card.setStatus(CardStatus.INACTIVE);
         cardRepository.persist(card);
     }
 
-    public CardResponse deactivateCard(UUID cardId) {
-        var card = findCard(cardId);
-        deactivateCard(card);
-        return toResponse(card);
-    }
     public void inactivateCardsByAccountId(UUID accountId) {
-        cardRepository.list("account.id = ?1", accountId).forEach(this::deactivateCard);
+        cardRepository.list("account.id = ?1", accountId).forEach(this::inactivateCard);
+    }
+
+    public List<CardResponse> listCards(AccountEntity account, CardStatus... statuses) {
+        return cardRepository.list("account.id = ?1 AND status IN ?2", account.getId(), List.of(statuses)).stream().map(this::toResponse).toList();
+    }
+
+    public void inactivateCard(UUID cardId) {
+        var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
+        inactivateCard(card);
+    }
+
+    public void checkCardPhysicalDeliveryRequest(UUID accountId) {
+        var cards = cardRepository.find("account.id = ?1 AND type = ?2", accountId, CardType.PHYSICAL).list();
+        if (!cards.isEmpty()) {
+            //--> get first card
+            var card = cards.get(0);
+            var lastDelivery = cardDeliveryRequestService.getLastDeliveryCardRequest(card.getId());
+            if (lastDelivery == null || lastDelivery.getDeliveryStatus() != DeliveryStatus.DELIVERED) {
+                throw new IllegalStateException("A physical card has not been delivered yet");
+            }
+        }
+    }
+
+    public void checkNumberOfPhysicalCardsInAccount(UUID accountId) {
+        var count = cardRepository.find("account.id = ?1 AND type = ?2", accountId, CardType.PHYSICAL).count();
+        if (count > 1) {
+            throw new IllegalStateException("Maximum number of physical cards reached");
+        }
+    }
+
+    public CardDeliveryResponse createCardDeliveryRequest(UUID cardId, UUID carrierId, CustomerAddress address) {
+        var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
+        if (card.getType() != CardType.PHYSICAL) {
+            throw new IllegalStateException("Card is not physical");
+        }
+        return cardDeliveryRequestService.createCardDeliveryRequest(card, carrierId, address);
+    }
+
+    public List<CardDeliveryResponse> listCardsDeliveryRequest(UUID cardId) {
+        var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
+        return cardDeliveryRequestService.listCardsDeliveryRequest(card);
+    }
+
+    public void cancelCardDeliveryRequest(UUID cardId, UUID deliveryRequestId) {
+        var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
+        cardDeliveryRequestService.cancelCardDeliveryRequest(card, deliveryRequestId);
     }
 }
