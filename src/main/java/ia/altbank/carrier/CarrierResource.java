@@ -16,7 +16,7 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @RequiredArgsConstructor
-@Tag(name = "Carriers", description = "Operações relacionadas aos transportadoras")
+@Tag(name = "Carriers", description = "Operações relacionadas as transportadoras")
 public class CarrierResource {
     private final CarrierService carrierService;
 
