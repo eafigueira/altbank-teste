@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
 @Builder
 public class CardDeliveryWebhookRequest {
     @NotNull(message = "Tracking Id is required")
-    private String trackingId;
+    private String tracking_id;
     @NotNull(message = "Status is required")
-    private String deliveryStatus;
-    private LocalDateTime deliveryDate;
+    private String delivery_status;
+    private LocalDateTime delivery_date;
     @NotNull(message = "Return Reason is required")
-    private String deliveryReturnReason;
+    private String delivery_return_reason;
     @NotNull(message = "Delivery Address is required")
-    private String deliveryAddress;
+    private String delivery_address;
 }

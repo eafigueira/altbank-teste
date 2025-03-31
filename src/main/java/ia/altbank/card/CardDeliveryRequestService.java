@@ -112,14 +112,14 @@ public class CardDeliveryRequestService {
 
     @Transactional
     public void processDelivery(CardDeliveryWebhookRequest payload) {
-        var deliveryRequests = cardDeliveryRequestRepository.find("tracking_code = ?1", payload.getTrackingId()).list();
+        var deliveryRequests = cardDeliveryRequestRepository.find("trackingCode = ?1", payload.getTracking_id()).list();
         if (deliveryRequests.isEmpty()) {
-            throw new IllegalStateException("Delivery request not found with tracking code " + payload.getTrackingId());
+            throw new IllegalStateException("Delivery request not found with tracking code " + payload.getTracking_id());
         }
         var deliveryRequest = deliveryRequests.get(0);
-        deliveryRequest.setDeliveredAt(payload.getDeliveryDate());
-        deliveryRequest.setDeliveryStatus(DeliveryStatus.valueOf(payload.getDeliveryStatus()));
-        deliveryRequest.setDeliveryReturnReason(payload.getDeliveryReturnReason());
+        deliveryRequest.setDeliveredAt(payload.getDelivery_date());
+        deliveryRequest.setDeliveryStatus(DeliveryStatus.valueOf(payload.getDelivery_status()));
+        deliveryRequest.setDeliveryReturnReason(payload.getDelivery_return_reason());
         cardDeliveryRequestRepository.persist(deliveryRequest);
 
         if (DeliveryStatus.DELIVERED.equals(deliveryRequest.getDeliveryStatus())) {
