@@ -4,6 +4,9 @@ import ia.altbank.card.CardDeliveryRequest;
 import ia.altbank.card.CardDeliveryResponse;
 import ia.altbank.card.CardRequest;
 import ia.altbank.card.CardResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -17,10 +20,13 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @RequiredArgsConstructor
+@Tag(name = "Clientes", description = "Operações relacionadas aos clientes contas e cartões")
 public class CustomerResource {
 
     private final CustomerService service;
 
+    @Operation(summary = "Cria um novo cliente", description = "Cadastra um novo cliente e cria automaticamente uma conta e um cartão físico.")
+    @ApiResponse(responseCode = "201", description = "Cliente criado com sucesso")
     @POST
     public Response createCustomer(@Valid CreateCustomerRequest request) {
         CreateCustomerResponse response = service.create(request);
@@ -86,12 +92,20 @@ public class CustomerResource {
         return service.createCard(customerId, accountId, request);
     }
 
-    @DELETE
-    @Path("/{customerId}/accounts/{accountId}/cards/{cardId}")
+    @PUT
+    @Path("/{customerId}/accounts/{accountId}/cards/{cardId}/inactivate")
     public void inactivateCard(@PathParam("customerId") UUID customerId,
                                @PathParam("accountId") UUID accountId,
                                @PathParam("cardId") UUID cardId) {
         service.inactivateCard(customerId, accountId, cardId);
+    }
+
+    @PUT
+    @Path("/{customerId}/accounts/{accountId}/cards/{cardId}/activate")
+    public void activateCard(@PathParam("customerId") UUID customerId,
+                               @PathParam("accountId") UUID accountId,
+                               @PathParam("cardId") UUID cardId) {
+        service.activateCard(customerId, accountId, cardId);
     }
 
     @POST

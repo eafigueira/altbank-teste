@@ -80,4 +80,12 @@ public class ProcessorService {
                 .status(processor.getStatus())
                 .build();
     }
+
+    public ProcessorEntity getByCredentials(String clientId, String clientSecret) {
+        ProcessorEntity processor = repository.find("clientId = ?1 AND status = ?2", clientId, ProcessorStatus.ACTIVE).firstResult();
+        if (processor == null || !processor.getClientSecret().equals(clientSecret)) {
+            return null;
+        }
+        return processor;
+    }
 }

@@ -139,7 +139,7 @@ public class CustomerService {
                 .filter(acc -> acc.getId().equals(accountId)).findFirst()
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
-        return cardService.listCards(account, CardStatus.ACTIVE, CardStatus.CREATED);
+        return cardService.listCards(account, CardStatus.CREATED, CardStatus.ACTIVE, CardStatus.INACTIVE);
 
     }
 
@@ -166,6 +166,16 @@ public class CustomerService {
                 .filter(acc -> acc.getId().equals(accountId)).findFirst()
                 .orElseThrow(() -> new NotFoundException("Account not found"));
         cardService.inactivateCard(cardId);
+    }
+
+    @Transactional
+    public void activateCard(UUID customerId, UUID accountId, UUID cardId) {
+        findCustomerActive(customerId);
+        accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)
+                .stream()
+                .filter(acc -> acc.getId().equals(accountId)).findFirst()
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+        cardService.activateCard(cardId);
     }
 
     @Transactional
@@ -196,4 +206,5 @@ public class CustomerService {
                 .orElseThrow(() -> new NotFoundException("Account not found"));
         cardService.cancelCardDeliveryRequest(cardId, deliveryRequestId);
     }
+
 }

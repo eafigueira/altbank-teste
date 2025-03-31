@@ -3,12 +3,18 @@ package ia.altbank.card;
 import ia.altbank.account.AccountEntity;
 import ia.altbank.customer.CustomerAddress;
 import ia.altbank.exception.NotFoundException;
+import ia.altbank.hooks.ChangeCVVWebhookRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+
+import static java.util.UUID.fromString;
 
 @ApplicationScoped
 @RequiredArgsConstructor
@@ -57,6 +63,7 @@ public class CardService {
     public CardResponse createCard(AccountEntity account, CardType cardType) {
         CardEntity card = generateNewCard(account, cardType);
         card.setCvv(generateRandomCvv());
+        card.setCvvExpiration(LocalDateTime.now().plusYears(3));
         cardRepository.persist(card);
         return toResponse(card);
     }
@@ -83,6 +90,11 @@ public class CardService {
     public void inactivateCard(UUID cardId) {
         var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
         inactivateCard(card);
+    }
+
+    public void activateCard(UUID cardId) {
+        var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
+        activateCard(card);
     }
 
     public void checkCardPhysicalDeliveryRequest(UUID accountId) {
@@ -120,5 +132,25 @@ public class CardService {
     public void cancelCardDeliveryRequest(UUID cardId, UUID deliveryRequestId) {
         var card = cardRepository.findByIdOptional(cardId).orElseThrow(() -> new NotFoundException("Card not found"));
         cardDeliveryRequestService.cancelCardDeliveryRequest(card, deliveryRequestId);
+    }
+
+    @Transactional
+    public void processCVVUpdate(@Valid ChangeCVVWebhookRequest changeCVVWebhookRequest) {
+        var card = cardRepository.find("account.id = ?1 AND id = ?2 AND status <> ?3",
+                        fromString(changeCVVWebhookRequest.getAccount_id()),
+                        fromString(changeCVVWebhookRequest.getCard_id()),
+                        CardStatus.INACTIVE
+                )
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+
+        if (!CardType.VIRTUAL.equals(card.getType())) {
+            throw new IllegalStateException("Card is not virtual");
+        }
+        card.setCvv(changeCVVWebhookRequest.getNext_cvv());
+        card.setCvvExpiration(changeCVVWebhookRequest.getExpiration_date());
+        card.setStatus(CardStatus.ACTIVE);
+        cardRepository.persist(card);
     }
 }

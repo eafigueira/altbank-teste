@@ -19,8 +19,8 @@ public class CarrierService {
         return carrierRepository.find("id = ?1 AND status = ?2", carrierId, CarrierStatus.ACTIVE).firstResultOptional().orElseThrow(() -> new NotFoundException("Carrier not found"));
     }
 
-    public CarrierEntity validateCarrier(String clientId, String clientSecret) {
-        CarrierEntity carrier = carrierRepository.find("clientId", clientId).firstResult();
+    public CarrierEntity getByCredentials(String clientId, String clientSecret) {
+        CarrierEntity carrier = carrierRepository.find("clientId = ?1 AND status = ?2", clientId, CarrierStatus.ACTIVE).firstResult();
         if (carrier == null || !carrier.getClientSecret().equals(clientSecret)) {
             return null;
         }

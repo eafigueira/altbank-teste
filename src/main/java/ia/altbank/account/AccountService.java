@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -38,13 +37,5 @@ public class AccountService {
         account.setCustomer(customer);
         accountRepository.persist(account);
         return account;
-    }
-
-    public void deleteById(UUID accountId) {
-        accountRepository.delete("id = ?1", accountId);
-    }
-
-    public Optional<AccountEntity> findByIdOptional(UUID accountId) {
-        return accountRepository.findByIdOptional(accountId);
     }
 }
