@@ -25,9 +25,4 @@ public class CustomerEntity extends BaseEntity {
 
     @Embedded
     private CustomerAddress address;
-
-    @PrePersist
-    public void prePersist() {
-        if (status == null) status = CustomerStatus.ACTIVE;
-    }
 }

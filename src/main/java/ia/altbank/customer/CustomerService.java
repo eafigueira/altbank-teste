@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerService {
 
-    private final CustomerRepository customerRepository;
     private final AccountService accountService;
     private final CardService cardService;
+    private final CustomerRepository customerRepository;
 
 
     private CustomerEntity findCustomerActive(UUID customerId) {
@@ -41,7 +41,7 @@ public class CustomerService {
         customer.setName(request.getName());
         customer.setDocumentNumber(request.getDocumentNumber());
         customer.setEmail(request.getEmail());
-
+        customer.setStatus(CustomerStatus.ACTIVE);
         CustomerAddress address = new CustomerAddress(request.getAddress());
         customer.setAddress(address);
         return customer;
