@@ -1,62 +1,56 @@
-# code-with-quarkus
+# 🏦 AltBank - Sistema de Gerenciamento de Clientes, Contas e Cartões
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Este projeto simula um sistema bancário simples, com foco na gestão de **clientes**, **contas bancárias** e **cartões** (físicos e virtuais), além do controle de **entregas de cartões**.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+A aplicação foi desenvolvida em **Java 17** utilizando o **Quarkus Framework**, com arquitetura em camadas, separação de responsabilidades e foco em testes automatizados.
 
-## Running the application in dev mode
+---
 
-You can run your application in dev mode that enables live coding using:
+## ✅ Funcionalidades Implementadas
 
-```shell script
-./mvnw quarkus:dev
+- Cadastro, consulta, atualização e exclusão lógica de clientes
+- Criação e listagem de contas bancárias
+- Criação, ativação e inativação de cartões físicos e virtuais
+- Controle de entrega física de cartões
+- Regras de negócio como:
+    - Verificação de entrega antes da criação de cartão virtual
+    - Limite de cartões físicos por conta
+- Cobertura de testes: unidade e integração
+
+---
+
+## 🛠 Tecnologias Utilizadas
+
+- **Java 17**
+- **Quarkus (RESTEasy, Panache ORM, JPA)**
+- **MySQL** (via Docker)
+- **Flyway** (migração automática de banco de dados)
+- **Mockito**, **JUnit 5**
+- **RestAssured** (testes HTTP)
+- **Swagger (OpenAPI)**
+- **Lombok**
+
+---
+
+## 🚀 Como Rodar o Projeto
+
+1. **Clonar o repositório**
+
+   Acesse [https://github.com/eafigueira/altbank-teste](https://github.com/eafigueira/altbank-teste) ou execute:
+
+2. **Subir o banco de dados com Docker**
+
+O projeto já vem com um `docker-compose.yml` que levanta uma instância MySQL:
+```bash
+docker-compose up -d
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+3. **Executar o projeto**
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+```bash
+./mvnw clean package quarkus:dev
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+4. **Acessar a documentação**
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/code-with-quarkus-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Provided Code
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+A api tem um swagger em: `/q/swagger-ui/` ou acesse http://localhost:8080/q/swagger-ui/
