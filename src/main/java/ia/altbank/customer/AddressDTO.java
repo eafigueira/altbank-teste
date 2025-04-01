@@ -1,14 +1,14 @@
 package ia.altbank.customer;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serializable;
 
 @AllArgsConstructor
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
 public class AddressDTO implements Serializable {
     private String street;
     private String number;

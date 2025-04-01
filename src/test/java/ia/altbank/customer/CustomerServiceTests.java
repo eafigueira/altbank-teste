@@ -2,9 +2,8 @@ package ia.altbank.customer;
 
 import ia.altbank.account.AccountEntity;
 import ia.altbank.account.AccountService;
-import ia.altbank.card.CardResponse;
-import ia.altbank.card.CardService;
-import ia.altbank.card.CardType;
+import ia.altbank.account.AccountStatus;
+import ia.altbank.card.*;
 import ia.altbank.exception.NotFoundException;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
@@ -282,6 +281,30 @@ public class CustomerServiceTests {
             assertEquals("Cliente 2", result.get(1).getName());
         }
 
+        @Test
+        void shouldInactivateCustomerAndCallAccountServiceOnDelete() {
+            UUID customerId = UUID.randomUUID();
+
+            CustomerEntity existingCustomer = new CustomerEntity();
+            existingCustomer.setId(customerId);
+            existingCustomer.setDocumentNumber("12345678900");
+            existingCustomer.setName("Fulano");
+            existingCustomer.setEmail("fulano@email.com");
+            existingCustomer.setStatus(CustomerStatus.ACTIVE);
+            existingCustomer.setAddress(CustomerAddress.builder().city("Cidade").build());
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(existingCustomer));
+
+            customerService.delete(customerId);
+
+            assertEquals(CustomerStatus.INACTIVE, existingCustomer.getStatus());
+
+            verify(accountService).inactivateByCustomerId(customerId);
+            verify(customerRepository).persist(existingCustomer);
+        }
     }
 
     @Nested
@@ -431,4 +454,511 @@ public class CustomerServiceTests {
             verify(accountService, never()).inactivateByCustomerId(any());
         }
     }
+
+    @Nested
+    class AccountTestsSuccess {
+
+        @Test
+        void shouldCreateAccountSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setName("Fulano");
+            customer.setEmail("fulano@email.com");
+            customer.setDocumentNumber("12345678900");
+            customer.setStatus(CustomerStatus.ACTIVE);
+            customer.setAddress(new CustomerAddress());
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+            account.setCustomer(customer);
+            when(accountService.createAccount(customer)).thenReturn(account);
+
+            when(cardService.createCard(account, CardType.PHYSICAL)).thenReturn(CardResponse.builder().build());
+
+            CustomerAccountResponse response = customerService.createAccount(customerId);
+
+            assertEquals(accountId, response.getAccountId());
+            verify(accountService).createAccount(customer);
+            verify(cardService).createCard(account, CardType.PHYSICAL);
+        }
+
+        @Test
+        void shouldListAccountsSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity acc1 = new AccountEntity();
+            acc1.setId(UUID.randomUUID());
+
+            AccountEntity acc2 = new AccountEntity();
+            acc2.setId(UUID.randomUUID());
+
+            List<AccountEntity> accounts = List.of(acc1, acc2);
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(customer));
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)).thenReturn(accounts);
+
+            List<CustomerAccountResponse> result = customerService.listAccounts(customerId);
+
+            assertEquals(2, result.size());
+            assertTrue(result.stream().anyMatch(r -> r.getAccountId().equals(acc1.getId())));
+            assertTrue(result.stream().anyMatch(r -> r.getAccountId().equals(acc2.getId())));
+            verify(accountService).findByCustomerId(customerId, AccountStatus.ACTIVE);
+        }
+
+        @Test
+        void shouldDeactivateAccountSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            // Cliente ativo
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            // Conta ativa que será encontrada por ID
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+            account.setCustomer(customer);
+            account.setStatus(AccountStatus.ACTIVE);
+
+            // Mock da lista de contas do cliente
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            // Execução
+            customerService.deactivateAccount(customerId, accountId);
+
+            // Verificação
+            verify(accountService).deactivateAccount(account);
+        }
+    }
+
+    @Nested
+    class AccountTestsFailure {
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnAccountCreation() {
+            UUID customerId = UUID.randomUUID();
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+                customerService.createAccount(customerId);
+            });
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(accountService, never()).createAccount(any());
+            verify(cardService, never()).createCard(any(), any());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnListAccounts() {
+            UUID customerId = UUID.randomUUID();
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+                customerService.listAccounts(customerId);
+            });
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(accountService, never()).findByCustomerId(any(), any());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenAccountNotFoundOnDeactivate() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+                customerService.deactivateAccount(customerId, accountId);
+            });
+
+            assertEquals("Account not found", exception.getMessage());
+            verify(accountService, never()).deactivateAccount(any());
+        }
+    }
+
+    @Nested
+    class CardTestsSuccess {
+
+        @Test
+        void shouldListCardsSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            when(cardService.listCards(account, CardStatus.CREATED, CardStatus.ACTIVE, CardStatus.INACTIVE))
+                    .thenReturn(List.of(CardResponse.builder().id(UUID.randomUUID()).build()));
+
+            List<CardResponse> cards = customerService.listCards(customerId, accountId);
+
+            assertEquals(1, cards.size());
+        }
+
+        @Test
+        void shouldCreateCardSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            when(cardService.createCard(account, CardType.PHYSICAL))
+                    .thenReturn(CardResponse.builder().id(cardId).build());
+
+            CardRequest request = new CardRequest("PHYSICAL");
+            CardResponse response = customerService.createCard(customerId, accountId, request);
+
+            assertEquals(cardId, response.getId());
+        }
+
+        @Test
+        void shouldActivateCardSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            customerService.activateCard(customerId, accountId, cardId);
+
+            verify(cardService).activateCard(cardId);
+        }
+
+        @Test
+        void shouldInactivateCardSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            customerService.inactivateCard(customerId, accountId, cardId);
+
+            verify(cardService).inactivateCard(cardId);
+        }
+
+        @Test
+        void shouldCreateCardDeliveryRequestSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+            UUID carrierId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+            customer.setAddress(CustomerAddress.builder().city("Cidade").build());
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            CardDeliveryRequest request = CardDeliveryRequest.builder().carrierId(carrierId).build();
+            CardDeliveryResponse expected = CardDeliveryResponse.builder().cardId(cardId).carrierId(carrierId).build();
+
+            when(cardService.createCardDeliveryRequest(cardId, carrierId, customer.getAddress())).thenReturn(expected);
+
+            CardDeliveryResponse response = customerService.createCardDeliveryRequest(customerId, accountId, cardId, request);
+
+            assertEquals(expected.getCardId(), response.getCardId());
+        }
+
+        @Test
+        void shouldListCardDeliveryRequestsSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            CardDeliveryResponse delivery = CardDeliveryResponse.builder().cardId(cardId).build();
+            when(cardService.listCardsDeliveryRequest(cardId)).thenReturn(List.of(delivery));
+
+            List<CardDeliveryResponse> responses = customerService.listCardsDeliveryRequest(customerId, accountId, cardId);
+
+            assertEquals(1, responses.size());
+            assertEquals(cardId, responses.get(0).getCardId());
+        }
+
+        @Test
+        void shouldCancelCardDeliveryRequestSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+            UUID deliveryRequestId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE))
+                    .thenReturn(List.of(account));
+
+            customerService.cancelCardDeliveryRequest(customerId, accountId, cardId, deliveryRequestId);
+
+            verify(cardService).cancelCardDeliveryRequest(cardId, deliveryRequestId);
+        }
+
+        @Test
+        void shouldCreateVirtualCardSuccessfully() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)).thenReturn(List.of(account));
+
+            doNothing().when(cardService).checkCardPhysicalDeliveryRequest(account.getId());
+
+            when(cardService.createCard(account, CardType.VIRTUAL)).thenReturn(CardResponse.builder().id(cardId).build());
+
+            CardRequest request = new CardRequest("VIRTUAL");
+            CardResponse response = customerService.createCard(customerId, accountId, request);
+
+            assertEquals(cardId, response.getId());
+            verify(cardService).checkCardPhysicalDeliveryRequest(account.getId());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenInvalidCardTypeProvided() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            CustomerEntity customer = new CustomerEntity();
+            customer.setId(customerId);
+            customer.setStatus(CustomerStatus.ACTIVE);
+
+            AccountEntity account = new AccountEntity();
+            account.setId(accountId);
+
+            PanacheQuery<CustomerEntity> customerQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.of(customer));
+
+            when(accountService.findByCustomerId(customerId, AccountStatus.ACTIVE)).thenReturn(List.of(account));
+
+            CardRequest invalidRequest = new CardRequest("INVALID_TYPE");
+
+            assertThrows(IllegalArgumentException.class, () ->
+                    customerService.createCard(customerId, accountId, invalidRequest)
+            );
+        }
+
+    }
+
+    @Nested
+    class CardTestsFailure {
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnListCards() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            var customerQuery = mock(io.quarkus.hibernate.orm.panache.PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () ->
+                    customerService.listCards(customerId, accountId)
+            );
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(cardService, never()).listCards(any(), any());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnCreateCard() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+
+            var customerQuery = mock(io.quarkus.hibernate.orm.panache.PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.empty());
+
+            CardRequest request = new CardRequest(CardType.PHYSICAL.name());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () ->
+                    customerService.createCard(customerId, accountId, request)
+            );
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(cardService, never()).createCard(any(), any());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnActivateCard() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            var customerQuery = mock(io.quarkus.hibernate.orm.panache.PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () ->
+                    customerService.activateCard(customerId, accountId, cardId)
+            );
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(cardService, never()).activateCard(any(CardEntity.class));
+        }
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnInactivateCard() {
+            UUID customerId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            UUID cardId = UUID.randomUUID();
+
+            var customerQuery = mock(io.quarkus.hibernate.orm.panache.PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(customerQuery);
+            when(customerQuery.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () ->
+                    customerService.inactivateCard(customerId, accountId, cardId)
+            );
+
+            assertEquals("Customer not found", exception.getMessage());
+            verify(cardService, never()).inactivateCard(any());
+        }
+    }
+
+
+
 }

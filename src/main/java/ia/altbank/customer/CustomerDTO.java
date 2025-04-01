@@ -1,8 +1,6 @@
 package ia.altbank.customer;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -10,6 +8,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
 public class CustomerDTO {
     private UUID id;
     private LocalDateTime createdAt;
