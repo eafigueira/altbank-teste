@@ -327,5 +327,108 @@ public class CustomerServiceTests {
             when(queryMock.firstResultOptional()).thenReturn(Optional.empty());
             assertThrows(NotFoundException.class, () -> customerService.findOne(customerId));
         }
+
+        @Test
+        void shouldThrowExceptionWhenDocumentNumberAlreadyExistsOnUpdate() {
+            UUID customerId = UUID.randomUUID();
+            String currentDocument = "12345678900001";
+            String newDocument = "99999999999999";
+
+            CustomerEntity existingCustomer = new CustomerEntity();
+            existingCustomer.setId(customerId);
+            existingCustomer.setName("Cliente Atual");
+            existingCustomer.setEmail("atual@email.com");
+            existingCustomer.setDocumentNumber(currentDocument);
+            existingCustomer.setAddress(CustomerAddress.builder().city("Cidade").build());
+            existingCustomer.setStatus(CustomerStatus.ACTIVE);
+
+            CustomerEntity conflictingCustomer = new CustomerEntity();
+            conflictingCustomer.setId(UUID.randomUUID());
+            conflictingCustomer.setDocumentNumber(newDocument);
+            conflictingCustomer.setStatus(CustomerStatus.ACTIVE);
+
+            PanacheQuery<CustomerEntity> findByIdQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", customerId, CustomerStatus.ACTIVE))
+                    .thenReturn(findByIdQuery);
+            when(findByIdQuery.firstResultOptional()).thenReturn(Optional.of(existingCustomer));
+
+            PanacheQuery<CustomerEntity> findByDocQuery = mock(PanacheQuery.class);
+            when(customerRepository.find("documentNumber = ?1 AND status = ?2", newDocument, CustomerStatus.ACTIVE))
+                    .thenReturn(findByDocQuery);
+            when(findByDocQuery.firstResultOptional()).thenReturn(Optional.of(conflictingCustomer));
+
+            var updateRequest = UpdateCustomerRequest.builder()
+                    .name("Novo Nome")
+                    .email("novo@email.com")
+                    .documentNumber(newDocument)
+                    .address(CustomerAddressRequest.builder().city("Nova Cidade").build())
+                    .build();
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+                customerService.update(customerId, updateRequest);
+            });
+
+            assertEquals("Customer with document number 99999999999999 already exists", exception.getMessage());
+            verify(customerRepository, never()).persist(any(CustomerEntity.class));
+        }
+
+        @Test
+        void shouldThrowExceptionWhenDocumentNumberAlreadyExistsOnCreate() {
+            String documentNumber = "12345678900001";
+
+            CustomerEntity existingCustomer = new CustomerEntity();
+            existingCustomer.setId(UUID.randomUUID());
+            existingCustomer.setDocumentNumber(documentNumber);
+            existingCustomer.setStatus(CustomerStatus.ACTIVE);
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("documentNumber = ?1 AND status = ?2", documentNumber, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.of(existingCustomer));
+
+            var request = CreateCustomerRequest.builder()
+                    .name("Novo Cliente")
+                    .email("novo@email.com")
+                    .documentNumber(documentNumber)
+                    .address(CustomerAddressRequest.builder()
+                            .city("Cidade")
+                            .street("Rua A")
+                            .number("123")
+                            .neighborhood("Centro")
+                            .zipCode("00000-000")
+                            .state("SP")
+                            .complement("Apto 1")
+                            .build())
+                    .build();
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+                customerService.create(request);
+            });
+
+            assertEquals("Customer with document number 12345678900001 already exists", exception.getMessage());
+
+            verify(customerRepository, never()).persist(any(CustomerEntity.class));
+            verify(accountService, never()).createAccount(any());
+            verify(cardService, never()).createCard(any(), any());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenCustomerNotFoundOnDelete() {
+            UUID nonExistentId = UUID.randomUUID();
+
+            PanacheQuery<CustomerEntity> queryMock = mock(PanacheQuery.class);
+            when(customerRepository.find("id = ?1 AND status = ?2", nonExistentId, CustomerStatus.ACTIVE))
+                    .thenReturn(queryMock);
+            when(queryMock.firstResultOptional()).thenReturn(Optional.empty());
+
+            NotFoundException exception = assertThrows(NotFoundException.class, () -> {
+                customerService.delete(nonExistentId);
+            });
+
+            assertEquals("Customer not found", exception.getMessage());
+
+            verify(customerRepository, never()).persist(any(CustomerEntity.class));
+            verify(accountService, never()).inactivateByCustomerId(any());
+        }
     }
 }
